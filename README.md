@@ -1,0 +1,2 @@
+# scholarize
+Google Scholar Scrapper
