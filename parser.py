@@ -2,7 +2,7 @@ from __future__ import print_function, division
 __author__ = 'george'
 import requests
 from lxml import html, etree
-import time
+import time, traceback
 
 
 ALL_CONFS = "https://scholar.google.com/citations?view_op=top_venues&hl=en&vq=eng_softwaresystems"
@@ -58,7 +58,7 @@ class Paper(O):
     O.__init__(self, **params)
 
   def to_csv(self):
-    sep = " , "
+    sep = "\t"
     return self.conference + sep + \
            self.year + sep + \
            self.name + sep + \
@@ -71,8 +71,8 @@ class Paper(O):
 def fetch(url):
   headers = {'User-Agent': 'Mozilla/5.0 (X11; U; FreeBSD i386; en-US; rv:1.9.2.9) Gecko/20100913 Firefox/3.6.9'}
   page = requests.get(url, headers)
-  time.sleep(5)
-  print(page.content)
+  print(url, page.status_code)
+  time.sleep(10)
   tree = html.fromstring(page.content)
   return tree
 
@@ -91,9 +91,13 @@ def parse_conferences(tree):
 def run():
   tree = fetch(ALL_CONFS)
   conferences = parse_conferences(tree)
+  exit()
   papers = []
   for conference in conferences:
-    papers += conference.fetch_papers()
+    try:
+      papers += conference.fetch_papers()
+    except Exception:
+      print(traceback.format_exc())
   f = open("scholar.csv", "w")
   for paper in papers:
     f.write(paper.to_csv() + "\n")
