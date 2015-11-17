@@ -36,7 +36,7 @@ class Conference(O):
     for row in rows[1:]:
       # Skipping tile rows
       cols = row.findall("td")
-      url = BASE_URL + cols[0].find("a").get("href")
+      url = cols[0].find("a").get("href")
       name = cols[0].find("a").find("span").text
       spans = cols[0].findall("span")
       authors = spans[0].text
@@ -59,20 +59,22 @@ class Paper(O):
 
   def to_csv(self):
     sep = "\t"
-    return self.conference + sep + \
+    ret_str = self.conference + sep + \
            self.year + sep + \
            self.name + sep + \
            self.authors + sep + \
            self.citations + sep + \
            self.publication + sep + \
            self.url
+    ret_str = ret_str.encode('ascii', 'ignore')
+    return ret_str
 
 
 def fetch(url):
   headers = {'User-Agent': 'Mozilla/5.0 (X11; U; FreeBSD i386; en-US; rv:1.9.2.9) Gecko/20100913 Firefox/3.6.9'}
   page = requests.get(url, headers)
   print(url, page.status_code)
-  time.sleep(10)
+  time.sleep(20)
   tree = html.fromstring(page.content)
   return tree
 
@@ -91,14 +93,13 @@ def parse_conferences(tree):
 def run():
   tree = fetch(ALL_CONFS)
   conferences = parse_conferences(tree)
-  exit()
   papers = []
   for conference in conferences:
     try:
       papers += conference.fetch_papers()
     except Exception:
       print(traceback.format_exc())
-  f = open("scholar.csv", "w")
+  f = open("scholar.tsv", "w")
   for paper in papers:
     f.write(paper.to_csv() + "\n")
   f.close()
