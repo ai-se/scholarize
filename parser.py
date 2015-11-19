@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 __author__ = 'george'
-import requests
+import requests, sys
 from lxml import html, etree
 import time, traceback
 
@@ -74,7 +74,7 @@ def fetch(url):
   headers = {'User-Agent': 'Mozilla/5.0 (X11; U; FreeBSD i386; en-US; rv:1.9.2.9) Gecko/20100913 Firefox/3.6.9'}
   page = requests.get(url, headers)
   print(url, page.status_code)
-  time.sleep(20)
+  time.sleep(10)
   tree = html.fromstring(page.content)
   return tree
 
@@ -94,15 +94,50 @@ def run():
   tree = fetch(ALL_CONFS)
   conferences = parse_conferences(tree)
   papers = []
+  failed = {}
   for conference in conferences:
     try:
       papers += conference.fetch_papers()
     except Exception:
+      failed[conference.name] = conference.url
       print(traceback.format_exc())
   f = open("scholar.tsv", "w")
+  f.write("Conference\tYear\tName\tAuthors\tCitations\tPublication\tURL\n")
   for paper in papers:
     f.write(paper.to_csv() + "\n")
   f.close()
+  f = open("failed.tsv", "w")
+  for key, val in failed.items():
+    f.write(key + "\t" +  val + "\n")
+  f.close()
+
+def run_failed():
+  conferences = []
+  with open('failed.tsv') as f:
+    for line in f:
+      params = line.replace("\n","").split("\t")
+      conferences.append(Conference(params[0], params[1]))
+  papers = []
+  failed = {}
+  for conference in conferences:
+    try:
+      papers += conference.fetch_papers()
+    except Exception:
+      failed[conference.name] = conference.url
+      print(traceback.format_exc())
+  f = open("scholar.tsv", "a")
+  for paper in papers:
+    f.write(paper.to_csv() + "\n")
+  f.close()
+  f = open("failed.tsv", "w")
+  for key, val in failed.items():
+    f.write(key + "\t" +  val + "\n")
+  f.close()
+
 
 if __name__ == "__main__":
-  run()
+  args = sys.argv
+  if args[1] == "all":
+    run()
+  elif args[1] == "failed":
+    run_failed()
